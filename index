@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faltungs-Aufgabe</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --turquoise: #00C1D4;
+      --blue: #143AFF;
+      --violet: #7200FE;
+      --mint: #5AFFC5;
+      --red: #FF4F4F;
+      --yellow: #FFDE36;
+      --orange: #FF7E15;
+      --white: #FFFFFF;
+      --black: #000000;
+      --gray: #f4f4f4;
+      --dark: #111111;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; background: var(--white); color: var(--dark); min-height: 100vh; }
+
+    .header { background: var(--turquoise); padding: 12px 28px; display: flex; align-items: center; gap: 16px; }
+    .screen { display: none; max-width: 720px; margin: 0 auto; padding: 40px 24px 60px; }
+    .screen.active { display: block; }
+
+    h1 { font-size: 32px; font-weight: 700; line-height: 1.15; color: var(--blue); margin-bottom: 12px; }
+    h2 { font-size: 22px; font-weight: 600; color: var(--blue); margin-bottom: 16px; }
+    h3 { font-size: 16px; font-weight: 600; color: var(--dark); margin-bottom: 8px; }
+    p { font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 12px; }
+
+    .accent-line { width: 48px; height: 4px; background: var(--turquoise); margin-bottom: 24px; border-radius: 2px; }
+
+    .constraint-box { background: var(--gray); border-left: 4px solid var(--turquoise); border-radius: 8px; padding: 20px 24px; margin: 20px 0; }
+    .constraint-box ul { list-style: none; padding: 0; }
+    .constraint-box ul li { font-size: 14px; padding: 5px 0; display: flex; align-items: flex-start; gap: 10px; color: #222; }
+    .constraint-box ul li::before { content: '\2014'; color: var(--turquoise); font-weight: 700; flex-shrink: 0; }
+
+    .context-box { background: #e8f0ff; border-left: 4px solid var(--blue); border-radius: 8px; padding: 20px 24px; margin: 20px 0; }
+
+    .btn { display: inline-block; padding: 12px 28px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--blue); color: white; }
+    .btn-turquoise { background: var(--turquoise); color: white; }
+    .btn-outline { background: transparent; border: 2px solid var(--blue); color: var(--blue); }
+    .btn-sm { padding: 8px 18px; font-size: 13px; }
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+
+    .folds-selector { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    .fold-option { min-width: 52px; border: 2px solid #ddd; border-radius: 10px; padding: 12px 6px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; }
+    .fold-option:hover { border-color: var(--turquoise); }
+    .fold-option.selected { border-color: var(--blue); background: #e8f0ff; }
+    .fold-option .fold-num { font-size: 20px; font-weight: 700; color: var(--blue); display: block; }
+
+    .step-indicator { display: flex; gap: 6px; margin-bottom: 28px; }
+    .step-dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; }
+    .step-dot.active { background: var(--turquoise); }
+    .step-dot.done { background: var(--blue); }
+
+    .divider { width: 100%; height: 1px; background: #eee; margin: 28px 0; }
+
+    .thank-you-box { background: linear-gradient(135deg, var(--turquoise) 0%, var(--blue) 100%); border-radius: 16px; padding: 40px 32px; text-align: center; color: white; margin-top: 20px; }
+    .thank-you-box h2 { color: white; font-size: 28px; }
+    .thank-you-box p { color: rgba(255,255,255,0.85); font-size: 16px; }
+
+    .error-msg { color: var(--red); font-size: 13px; margin-top: 6px; display: none; }
+
+    .geo-accent { position: fixed; top: 0; right: 0; width: 220px; opacity: 0.04; pointer-events: none; z-index: 0; }
+
+    /* HOST */
+    .host-header { background: var(--blue); color: white; padding: 10px 24px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+    .host-container { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: var(--gray); border-radius: 10px; padding: 20px; text-align: center; border-top: 4px solid var(--turquoise); }
+    .stat-card .stat-num { font-size: 36px; font-weight: 700; color: var(--blue); display: block; }
+    .stat-card .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+    .responses-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .responses-table th { text-align: left; padding: 10px 12px; background: var(--blue); color: white; font-weight: 600; }
+    .responses-table td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: top; }
+    .responses-table tr:hover td { background: #f8f8f8; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .host-actions { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .bar-chart { margin: 24px 0; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .bar-row-label { width: 80px; font-size: 13px; color: #444; text-align: right; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 28px; background: #eee; border-radius: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--turquoise); border-radius: 6px; transition: width 0.6s ease; display: flex; align-items: center; padding-left: 10px; color: white; font-size: 12px; font-weight: 600; }
+
+    .bias-section { background: var(--gray); border-radius: 12px; padding: 28px; margin: 32px 0; }
+    .bias-section h3 { color: var(--blue); margin-bottom: 16px; font-size: 18px; }
+    .bias-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+    .bias-table th { text-align: right; padding: 8px 12px; background: var(--blue); color: white; font-weight: 600; }
+    .bias-table th:first-child { text-align: left; }
+    .bias-table td { padding: 8px 12px; border-bottom: 1px solid #ddd; text-align: right; }
+    .bias-table td:first-child { text-align: left; font-weight: 600; color: #444; }
+    .bias-table tr:last-child td { border-bottom: none; font-weight: 700; color: var(--blue); }
+
+    .bias-note { font-size: 12px; color: #888; margin-top: 16px; line-height: 1.6; }
+    .bias-headline { font-size: 15px; color: #333; margin-bottom: 12px; line-height: 1.6; }
+    .bias-metric { display: inline-block; background: white; border: 2px solid var(--turquoise); border-radius: 8px; padding: 8px 16px; margin: 4px 8px 4px 0; font-size: 14px; font-weight: 600; color: var(--blue); }
+
+    @media (max-width: 500px) {
+      h1 { font-size: 24px; }
+      .fold-option .fold-num { font-size: 16px; }
+      .fold-option { min-width: 44px; padding: 8px 4px; }
+    }
+  </style>
+</head>
+<body>
+
+<svg class="geo-accent" viewBox="0 0 260 320" xmlns="http://www.w3.org/2000/svg">
+  <polygon points="260,0 260,320 0,320" fill="#143AFF"/>
+  <line x1="260" y1="60" x2="60" y2="260" stroke="#00C1D4" stroke-width="1"/>
+  <line x1="260" y1="130" x2="130" y2="260" stroke="#00C1D4" stroke-width="0.6"/>
+  <line x1="260" y1="200" x2="200" y2="260" stroke="#00C1D4" stroke-width="0.4"/>
+  <circle cx="220" cy="100" r="3" fill="#00C1D4"/>
+  <circle cx="200" cy="160" r="3" fill="#00C1D4"/>
+</svg>
+
+<!-- HEADER -->
+<!-- ════════ STUDENT VIEW ════════ -->
+<div id="student-view">
+
+  <!-- SCREEN 0: Aufgabe + Bauen -->
+  <div class="screen active" id="screen-0">
+    <div class="step-indicator">
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+      <div class="step-dot"></div>
+    </div>
+    <h1>Blechbiege-<br>Aufgabe</h1>
+    <div class="accent-line"></div>
+
+    <div class="context-box">
+      <h3>Fertigungskontext</h3>
+      <p style="margin-top:8px;font-size:14px;">
+        Sie entwerfen eine <strong>Halterung</strong> aus einem <strong>einzelnen Blech</strong> (1 mm, A4),
+        gebogen auf einer <strong>hydraulischen Abkantpresse</strong>.
+        Jede Faltung kostet <strong>0,85 &euro; pro St&uuml;ck</strong> (R&uuml;st- und Zykluszeit).
+      </p>
+    </div>
+
+    <h3 style="margin-top:28px;">Der bisherige Entwurf</h3>
+    <p style="font-size:14px;color:#555;">Ihr Team hat folgende Halterung vorgeschlagen: eine dreieckige S&auml;ule mit <strong>2 Faltungen</strong>.</p>
+
+    <img src="stele.jpg" alt="Papier-Stele" style="max-width:100%;border-radius:8px;margin:16px 0;">
+
+    <div style="background:#fff3cd;border-left:4px solid #e8a000;border-radius:8px;padding:18px 22px;margin:8px 0 24px;">
+      <p style="font-size:14px;font-weight:600;color:#7a4f00;margin:0 0 6px;">Produktionshinweis</p>
+      <p style="font-size:14px;color:#5a3a00;margin:0;">
+        Die Werkzeugkonfiguration der Abkantpresse unterst&uuml;tzt in diesem Batch <strong>keine 2 Faltungen</strong> pro Werkst&uuml;ck.
+        Alle anderen Faltungszahlen sind m&ouml;glich.
+      </p>
+    </div>
+
+    <h3>Ihre Aufgabe</h3>
+    <p style="font-size:14px;">Entwerfen Sie die Halterung neu mit dem bereitgestellten A4-Blatt Papier. Die L&ouml;sung muss:</p>
+    <div class="constraint-box">
+      <ul>
+        <li>Ein <strong>A5-Blatt flach oben aufliegend tragen</strong> k&ouml;nnen</li>
+        <li><strong>Beliebig viele Faltungen au&szlig;er 2</strong> verwenden</li>
+      </ul>
+    </div>
+
+    <p style="font-size:14px;color:#555;margin-top:8px;">Nehmen Sie sich Zeit. Wenn Sie mit Ihrer Konstruktion zufrieden sind, gehen Sie weiter zur Eingabe.</p>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToScreen(1)">Weiter zur Eingabe &rarr;</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: Faltungszahl eingeben -->
+  <div class="screen" id="screen-1">
+    <div class="step-indicator">
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+    </div>
+    <h2>Antwort eingeben</h2>
+    <div class="accent-line"></div>
+
+    <div class="input-group">
+      <label>Wie viele Faltungen hat Ihr Redesign?</label>
+      <div class="folds-selector" id="folds-selector"></div>
+      <p class="error-msg" id="folds-error">Bitte w&auml;hlen Sie die Anzahl der Faltungen.</p>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="goToScreen(0)">&larr; Zur&uuml;ck</button>
+      <button class="btn btn-turquoise" id="submit-btn" onclick="submitResponse()">Absenden</button>
+    </div>
+    <p class="error-msg" id="submit-error" style="display:none;margin-top:12px;">Senden fehlgeschlagen. Bitte erneut versuchen.</p>
+  </div>
+
+  <!-- SCREEN 2: Danke -->
+  <div class="screen" id="screen-2">
+    <div class="step-indicator">
+      <div class="step-dot done"></div>
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+    </div>
+    <div class="thank-you-box">
+      <h2>Danke!</h2>
+      <p style="margin-top:12px;">Ihre Antwort wurde gespeichert.<br>Wir besprechen die Ergebnisse gleich gemeinsam.</p>
+    </div>
+    <div style="margin-top:32px;background:var(--gray);border-radius:10px;padding:20px 24px;">
+      <p style="font-size:13px;color:#888;margin:0;">Sie k&ouml;nnen diesen Tab schlie&szlig;en oder auf die Gruppendiskussion warten.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════ HOST PANEL ════════ -->
+<div id="host-view" style="display:none;">
+  <div class="host-header">
+    <span>Host Panel &mdash; Faltungs-Aufgabe</span>
+    <span id="host-last-update" style="font-weight:300;font-size:11px;">Warte auf Antworten...</span>
+  </div>
+
+  <div class="host-container">
+    <h2 style="margin-bottom:4px;">Live-Ergebnisse</h2>
+    <p style="font-size:13px;color:#888;margin-bottom:24px;">Aktualisiert automatisch.</p>
+
+    <div class="host-actions">
+      <button class="btn btn-turquoise btn-sm" onclick="copyStudentLink()">Link kopieren</button>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">CSV exportieren</button>
+      <button class="btn btn-sm" style="background:#eee;color:#555;" onclick="resetData()">Alle Antworten l&ouml;schen</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><span class="stat-num" id="stat-total">0</span><span class="stat-label">Antworten</span></div>
+      <div class="stat-card"><span class="stat-num" id="stat-avg">--</span><span class="stat-label">Durchschn. Faltungen</span></div>
+      <div class="stat-card"><span class="stat-num" id="stat-bias">--</span><span class="stat-label">Durchschn. Addition Bias</span></div>
+    </div>
+
+    <h3 style="margin-bottom:12px;">Verteilung der Faltungen</h3>
+    <div class="bar-chart" id="bar-chart-container"></div>
+
+    <div class="divider"></div>
+
+    <!-- ADDITION BIAS SECTION -->
+    <div class="bias-section" id="bias-section">
+      <h3>Addition Bias: Auswirkungen auf Produktion</h3>
+      <p class="bias-headline" id="bias-headline">Noch keine Daten.</p>
+      <div id="bias-metrics"></div>
+      <div style="overflow-x:auto;">
+        <table class="bias-table" id="bias-table" style="display:none;">
+          <thead>
+            <tr>
+              <th style="text-align:left;">St&uuml;ckzahl</th>
+              <th>Zusatzkosten</th>
+              <th>Zusatz-CO&#8322;</th>
+              <th>Zusatzzeit</th>
+              <th>Vergleich</th>
+            </tr>
+          </thead>
+          <tbody id="bias-tbody"></tbody>
+        </table>
+      </div>
+      <p class="bias-note" id="bias-note" style="display:none;">
+        <strong>Annahmen:</strong> Hydraulische Abkantpresse, 0,018 kWh pro Biegezyklus, Strommix 0,4 kg CO&#8322;/kWh
+        (= 7,2 g CO&#8322; pro Faltung), 10 s Arbeitszeit pro Faltung, 0,85 &euro; pro Faltung.
+        Optimales Design: 2 Faltungen. Addition Bias = Durchschnitt(gew&auml;hlte Faltungen) &minus; 2.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <h3 style="margin-bottom:12px;">Alle Antworten</h3>
+    <div style="overflow-x:auto;">
+      <table class="responses-table">
+        <thead>
+          <tr><th>#</th><th>Faltungen</th><th>Zeit</th></tr>
+        </thead>
+        <tbody id="responses-tbody">
+          <tr><td colspan="3" style="text-align:center;color:#aaa;padding:20px;">Noch keine Antworten</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uyynxszpmtwfxmnwirjn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_urtblTmp0Y9ikKCBm-Forg_azXo9iQ6';
+const GAME_KEY     = 'odce_folding_task_v1';
+const TABLE        = 'folding_responses';
+
+// Constants for bias calculation
+const COST_PER_FOLD = 0.85;        // EUR
+const CO2_PER_FOLD  = 7.2;         // grams CO2
+const TIME_PER_FOLD = 10;          // seconds
+const OPTIMAL_FOLDS = 2;
+const BATCH_SIZES   = [1, 10, 100, 1000, 10000];
+
+let db = null;
+try {
+  const { createClient } = supabase;
+  db = createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  console.warn('Supabase nicht konfiguriert, localStorage-Modus');
+}
+
+let state = { foldsMade: null };
+let currentScreen = 0;
+
+// Build fold selector buttons (1, 3..15, 15+)
+const FOLD_VALUES = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const FOLD_LABELS = [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, '15+'];
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Build fold selector
+  const sel = document.getElementById('folds-selector');
+  FOLD_VALUES.forEach((v, i) => {
+    const div = document.createElement('div');
+    div.className = 'fold-option';
+    div.innerHTML = '<span class="fold-num">' + FOLD_LABELS[i] + '</span>';
+    div.addEventListener('click', () => {
+      sel.querySelectorAll('.fold-option').forEach(o => o.classList.remove('selected'));
+      div.classList.add('selected');
+      state.foldsMade = v;
+    });
+    sel.appendChild(div);
+  });
+
+  // Build bar chart rows for host
+  const barContainer = document.getElementById('bar-chart-container');
+  if (barContainer) {
+    FOLD_VALUES.forEach((v, i) => {
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = '<div class="bar-row-label">' + FOLD_LABELS[i] + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" id="bar-' + v + '" style="width:0%"></div></div>';
+      barContainer.appendChild(row);
+    });
+  }
+
+  const isHost = new URLSearchParams(window.location.search).get('host') === 'true';
+  if (isHost) {
+    document.getElementById('student-view').style.display = 'none';
+    document.getElementById('host-view').style.display = 'block';
+    initHostPanel();
+  }
+});
+
+function goToScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + n).classList.add('active');
+  currentScreen = n;
+  window.scrollTo(0, 0);
+}
+
+async function submitResponse() {
+  if (!state.foldsMade) {
+    document.getElementById('folds-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('folds-error').style.display = 'none';
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Wird gesendet...';
+
+  const payload = {
+    game_key:    GAME_KEY,
+    nickname:    'anonymous',
+    folds_made:  state.foldsMade,
+    folds_min:   null,
+    bias_score:  null,
+    min_shape:   null,
+    description: '',
+    confidence:  null,
+    reflection:  '',
+    created_at:  new Date().toISOString()
+  };
+
+  let saved = false;
+  if (db) {
+    try {
+      const { error } = await db.from(TABLE).insert(payload);
+      if (!error) saved = true;
+      else console.error('Supabase-Fehler:', error);
+    } catch(e) { console.warn('Supabase-Fehler', e); }
+  }
+  if (!saved) {
+    const existing = JSON.parse(localStorage.getItem(GAME_KEY) || '[]');
+    existing.push(payload);
+    localStorage.setItem(GAME_KEY, JSON.stringify(existing));
+    saved = true;
+  }
+  if (saved) {
+    goToScreen(2);
+  } else {
+    document.getElementById('submit-error').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Absenden';
+  }
+}
+
+// ── HOST ──
+function initHostPanel() {
+  loadResponses();
+  if (db) {
+    db.channel('folding-responses')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: TABLE }, () => loadResponses())
+      .subscribe();
+  } else {
+    setInterval(loadResponses, 5000);
+  }
+}
+
+async function loadResponses() {
+  let data = [];
+  if (db) {
+    const { data: rows } = await db.from(TABLE).select('*').eq('game_key', GAME_KEY).order('created_at', { ascending: true });
+    data = rows || [];
+  } else {
+    data = JSON.parse(localStorage.getItem(GAME_KEY) || '[]');
+  }
+  renderHostPanel(data);
+  document.getElementById('host-last-update').textContent = 'Aktualisiert: ' + new Date().toLocaleTimeString();
+}
+
+function renderHostPanel(data) {
+  const n = data.length;
+  document.getElementById('stat-total').textContent = n;
+
+  if (n > 0) {
+    const avgMade = data.reduce((s, r) => s + (r.folds_made || 0), 0) / n;
+    const avgBias = avgMade - OPTIMAL_FOLDS;
+    document.getElementById('stat-avg').textContent = avgMade.toFixed(1);
+    document.getElementById('stat-bias').textContent = (avgBias >= 0 ? '+' : '') + avgBias.toFixed(1);
+    renderBiasSection(avgBias);
+  } else {
+    document.getElementById('stat-avg').textContent = '--';
+    document.getElementById('stat-bias').textContent = '--';
+    document.getElementById('bias-headline').textContent = 'Noch keine Daten.';
+    document.getElementById('bias-table').style.display = 'none';
+    document.getElementById('bias-note').style.display = 'none';
+    document.getElementById('bias-metrics').innerHTML = '';
+  }
+
+  // Bar chart
+  FOLD_VALUES.forEach(v => {
+    const count = data.filter(r => r.folds_made === v).length;
+    const pct = n > 0 ? (count / n * 100) : 0;
+    const bar = document.getElementById('bar-' + v);
+    if (bar) {
+      bar.style.width = (pct > 0 ? Math.max(pct, 3) : 0) + '%';
+      bar.textContent = count > 0 ? count : '';
+    }
+  });
+
+  // Table
+  const tbody = document.getElementById('responses-tbody');
+  if (n === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:20px;">Noch keine Antworten</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map((r, i) => {
+    const label = r.folds_made === 16 ? '15+' : r.folds_made;
+    return '<tr><td>' + (i + 1) + '</td><td><span class="badge" style="background:#e8f0ff;color:var(--blue);">' +
+      label + ' Faltung' + (r.folds_made !== 1 ? 'en' : '') + '</span></td>' +
+      '<td style="font-size:11px;color:#aaa;">' + (r.created_at ? new Date(r.created_at).toLocaleTimeString() : '--') + '</td></tr>';
+  }).join('');
+}
+
+function renderBiasSection(avgBias) {
+  const metricsEl = document.getElementById('bias-metrics');
+  const tableEl   = document.getElementById('bias-table');
+  const tbodyEl   = document.getElementById('bias-tbody');
+  const noteEl    = document.getElementById('bias-note');
+  const headEl    = document.getElementById('bias-headline');
+
+  if (avgBias <= 0) {
+    headEl.textContent = 'Kein Addition Bias: Die Gruppe hat im Schnitt nicht mehr Faltungen als das Optimum (2) gewaehlt.';
+    metricsEl.innerHTML = '';
+    tableEl.style.display = 'none';
+    noteEl.style.display = 'block';
+    return;
+  }
+
+  headEl.innerHTML = 'Die Gruppe waehlt im Schnitt <strong>' + avgBias.toFixed(1) +
+    ' Faltung' + (avgBias !== 1 ? 'en' : '') + ' mehr</strong> als das Optimum (2 Faltungen). ' +
+    'Das verursacht pro Stueck:';
+
+  metricsEl.innerHTML =
+    '<span class="bias-metric">+' + (COST_PER_FOLD * avgBias).toFixed(2) + ' &euro;</span>' +
+    '<span class="bias-metric">+' + (CO2_PER_FOLD * avgBias).toFixed(1) + ' g CO&#8322;</span>' +
+    '<span class="bias-metric">+' + (TIME_PER_FOLD * avgBias).toFixed(0) + ' s</span>';
+
+  tableEl.style.display = 'table';
+  noteEl.style.display = 'block';
+
+  const comparisons = [
+    '',
+    '',
+    'Ein Smartphone laden',
+    '~' + ((CO2_PER_FOLD * avgBias * 1000) / 1000 / 0.15).toFixed(0) + ' km Autofahrt',
+    '~' + ((CO2_PER_FOLD * avgBias * 10000) / 1000 / 0.15).toFixed(0) + ' km Autofahrt'
+  ];
+
+  tbodyEl.innerHTML = BATCH_SIZES.map((bs, idx) => {
+    const extraCost = COST_PER_FOLD * avgBias * bs;
+    const extraCO2g = CO2_PER_FOLD * avgBias * bs;
+    const extraTimeSec = TIME_PER_FOLD * avgBias * bs;
+
+    let co2Str;
+    if (extraCO2g >= 1000) co2Str = (extraCO2g / 1000).toFixed(1) + ' kg';
+    else co2Str = extraCO2g.toFixed(1) + ' g';
+
+    let timeStr;
+    if (extraTimeSec >= 3600) {
+      const h = Math.floor(extraTimeSec / 3600);
+      const m = Math.floor((extraTimeSec % 3600) / 60);
+      timeStr = h + ' h ' + m + ' min';
+    } else if (extraTimeSec >= 60) {
+      const m = Math.floor(extraTimeSec / 60);
+      const s = Math.round(extraTimeSec % 60);
+      timeStr = m + ' min ' + s + ' s';
+    } else {
+      timeStr = extraTimeSec.toFixed(0) + ' s';
+    }
+
+    const costStr = extraCost >= 1000 ?
+      (extraCost / 1000).toFixed(1) + ' T\u20ac' :
+      extraCost.toFixed(2) + ' \u20ac';
+
+    return '<tr><td>' + bs.toLocaleString('de-DE') + ' St.</td><td>' +
+      costStr + '</td><td>' + co2Str + '</td><td>' + timeStr + '</td><td style="font-size:12px;color:#888;">' +
+      (comparisons[idx] || '') + '</td></tr>';
+  }).join('');
+}
+
+function copyStudentLink() {
+  const url = window.location.href.split('?')[0];
+  navigator.clipboard.writeText(url).then(() => alert('Link kopiert:\n' + url));
+}
+
+function exportCSV() {
+  if (db) {
+    db.from(TABLE).select('*').eq('game_key', GAME_KEY).order('created_at', { ascending: true }).then(({ data }) => {
+      if (!data || !data.length) { alert('Keine Daten.'); return; }
+      downloadCSV(data);
+    });
+    return;
+  }
+  const data = JSON.parse(localStorage.getItem(GAME_KEY) || '[]');
+  if (!data.length) { alert('Keine Daten.'); return; }
+  downloadCSV(data);
+}
+
+function downloadCSV(data) {
+  const headers = ['folds_made', 'created_at'];
+  const csv = [headers.join(';'), ...data.map(r => headers.map(h => JSON.stringify(r[h] ?? '')).join(';'))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'faltungs_aufgabe_antworten.csv';
+  a.click();
+}
+
+function resetData() {
+  if (!confirm('Alle Antworten loeschen? Kann nicht rueckgaengig gemacht werden.')) return;
+  if (db) {
+    db.from(TABLE).delete().eq('game_key', GAME_KEY).then(() => loadResponses());
+  } else {
+    localStorage.removeItem(GAME_KEY);
+    loadResponses();
+  }
+}
+</script>
+</body>
+</html>
