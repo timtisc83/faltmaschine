@@ -226,7 +226,7 @@
     <div class="divider"></div>
 
     <div class="bias-section" id="bias-section">
-      <h3>Addition Bias: Relative Verschlechterung gegenueber dem Optimum</h3>
+      <h3>Addition Bias: Relative Verschlechterung gegenueber dem vorherhigen Design</h3>
       <p class="bias-headline" id="bias-headline">Noch keine Daten.</p>
       <div id="bias-metrics"></div>
       <p class="bias-note" id="bias-note" style="display:none;"></p>
@@ -426,10 +426,10 @@ function renderBiasSection(avgBias) {
   const headEl    = document.getElementById('bias-headline');
 
   if (avgBias <= 0) {
-    headEl.textContent = 'Kein Addition Bias: Die Gruppe hat im Schnitt nicht mehr Faltungen als das Optimum (2) gewaehlt.';
+    headEl.textContent = 'Kein Addition Bias: Die Gruppe hat im Schnitt nicht mehr Faltungen als das Ausgangsdesign (2) gewaehlt.';
     metricsEl.innerHTML = '';
     noteEl.style.display = 'block';
-    noteEl.innerHTML = '<strong>Interpretation:</strong> Kein relativer Mehraufwand gegenueber dem Optimum.';
+    noteEl.innerHTML = '<strong>Interpretation:</strong> Kein relativer Mehraufwand gegenueber dem Ausgangsdesign.';
     return;
   }
 
